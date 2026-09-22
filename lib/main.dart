@@ -1,7 +1,23 @@
 import 'package:flutter/material.dart';
-
+import 'package:go_router/go_router.dart';
+import 'screens/product_detail_screen.dart';
 import 'screens/home_screen.dart';
 
+
+final _router = GoRouter(
+  routes: [
+    GoRoute(
+      path: '/',
+      builder: (context, state) => const HomeScreen(),
+    ),
+    GoRoute(
+      path: '/product/:id',
+      builder: (context, state) => ProductDetailScreen(
+        productId: state.pathParameters['id']!,
+      ),
+    ),
+  ],
+);
 void main() {
   runApp(const MiniMarketApp());
 }
@@ -11,7 +27,7 @@ class MiniMarketApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'Mini Market',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -32,7 +48,7 @@ class MiniMarketApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const HomeScreen(),
+      routerConfig: _router,
     );
   }
 }
