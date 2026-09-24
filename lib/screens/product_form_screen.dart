@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
-
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/product_bloc.dart';
 import '../data/categories.dart';
-import '../data/market_store.dart';
 import '../models/product.dart';
 
-/// One screen for both jobs:
-/// - `ProductFormScreen()`            -> add a new product
-/// - `ProductFormScreen(product: p)`  -> edit the product `p`
 class ProductFormScreen extends StatefulWidget {
-  final Product? product; // will be null while adding a product
+  final Product? product;
 
   const ProductFormScreen({super.key, this.product});
 
@@ -17,7 +14,6 @@ class ProductFormScreen extends StatefulWidget {
 }
 
 class _ProductFormScreenState extends State<ProductFormScreen> {
-  /// The key lets us run the validators of every field at once.
   final _formKey = GlobalKey<FormState>();
 
   final _titleController = TextEditingController();
@@ -26,14 +22,12 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
 
   String _category = kCategories.first;
 
-  /// True when we opened the screen with a product to edit.
   bool get _isEditing => widget.product != null;
 
   @override
   void initState() {
     super.initState();
 
-    // When editing, start with the values the product already has.
     final product = widget.product;
     if (product != null) {
       _titleController.text = product.title;
@@ -45,7 +39,6 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
 
   @override
   void dispose() {
-    // Controllers must be cleaned up, otherwise they leak memory.
     _titleController.dispose();
     _priceController.dispose();
     _descriptionController.dispose();
@@ -56,7 +49,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     if (value == null || value.trim().isEmpty) {
       return 'Enter a title';
     }
-    return null; // null means "this field is fine".
+    return null;
   }
 
   String? _validatePrice(String? value) {
@@ -75,9 +68,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   }
 
   void _save() {
-    // validate() runs every validator above and shows the red messages.
     if (!_formKey.currentState!.validate()) {
-      return; // Something is wrong, stay on the screen.
+      return;
     }
 
     final title = _titleController.text.trim();
@@ -85,24 +77,46 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     final description = _descriptionController.text.trim();
 
     if (_isEditing) {
-      MarketStore.updateProduct(
-        widget.product!.copyWith(
-          title: title,
-          price: price,
-          category: _category,
-          description: description,
+      context.read<ProductBloc>().add(
+        UpdateProductEvent(
+          product: widget.product!.copyWith(
+            title: title,
+            price: price,
+            category: _category,
+            description: description,
+          ),
         ),
       );
+
+      // MarketStore.updateProduct(
+      //   widget.product!.copyWith(
+      //     title: title,
+      //     price: price,
+      //     category: _category,
+      //     description: description,
+      //   ),
+      // );
     } else {
-      MarketStore.addProduct(
-        Product(
-          id: MarketStore.newProductId(),
-          title: title,
-          price: price,
-          category: _category,
-          description: description,
+      context.read<ProductBloc>().add(
+        CreateProductEvent(
+          product: Product(
+            id: 'p${DateTime.now().millisecondsSinceEpoch}',
+            title: title,
+            price: price,
+            category: _category,
+            description: description,
+          ),
         ),
       );
+      // MarketStore.addProduct(
+      // Product(
+      //   id: MarketStore.newProductId(),
+      //   title: title,
+      //   price: price,
+      //   category: _category,
+      //   description: description,
+      // ),
+      // );
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -213,7 +227,6 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   }
 }
 
-/// The small grey text above every field.
 class _FieldLabel extends StatelessWidget {
   final String text;
 

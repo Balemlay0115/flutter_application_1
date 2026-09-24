@@ -14,6 +14,28 @@ class Product {
     required this.description,
   });
 
+  /// Factory constructor to convert JSON into a Product object
+  factory Product.fromJson(Map<String, dynamic> json) {
+    return Product(
+      id: json['id']?.toString() ?? '',
+      title: json['title'] ?? '',
+      price: (json['price'] ?? 0).toDouble(),
+      category: json['category'] ?? '',
+      description: json['description'] ?? '',
+    );
+  }
+
+  /// Method to convert a Product object back into JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'price': price,
+      'category': category,
+      'description': description,
+    };
+  }
+
   /// Returns a copy of this product with some fields replaced.
   /// Used by the edit screen so we never change a product in place.
   Product copyWith({

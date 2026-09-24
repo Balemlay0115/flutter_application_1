@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import '../bloc/product_bloc.dart';
 
 import '../data/categories.dart';
 import '../data/market_store.dart';
 import '../models/product.dart';
-import 'cart_screen.dart';
-import 'product_detail_screen.dart';
-import 'product_form_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,41 +15,32 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  /// Opens the detail screen of the tapped product.
-  /// `await` waits until we come back, then we redraw the screen because
-  /// the product may have been edited or deleted in the meantime.
+  @override
+  void initState() {
+    super.initState();
+
+    context.read<ProductBloc>().add(GetProductsEvent());
+  }
+
   Future<void> _openProduct(Product product) async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ProductDetailScreen(productId: product.id),
-      ),
-    );
+    await context.push('/product/${product.id}');
 
     setState(() {});
   }
 
   Future<void> _openCart() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (BuildContext context) => CartScreen()),
-    );
+    context.push('/cart');
 
     setState(() {});
   }
 
   Future<void> _openAddProduct() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const ProductFormScreen()),
-    );
+    context.push('/product/new');
     setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    final products = MarketStore.products;
-
     return Scaffold(
       appBar: AppBar(
         centerTitle: false,
@@ -73,32 +64,46 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Divider(height: 1),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: products.isEmpty
-            ? const Center(
-                child: Text(
-                  'No products yet.\nTap + to add your first one.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
-                ),
-              )
-            : GridView.builder(
-                itemCount: products.length,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  childAspectRatio: 0.85,
-                ),
-                itemBuilder: (BuildContext context, int index) {
-                  Product product = products[index];
-                  return _ProductCard(
-                    product: products[index],
-                    onTap: () => {_openProduct(product)},
-                  );
-                },
-              ),
+      body: BlocBuilder<ProductBloc, ProductState>(
+        builder: (context, state) {
+          if (state is ProductLoading) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          if (state is ProductListState) {
+            final products = state.products;
+
+            return Padding(
+              padding: const EdgeInsets.all(16),
+              child: products.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No products yet.\nTap + to add your first one.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    )
+                  : GridView.builder(
+                      itemCount: products.length,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 10,
+                        crossAxisSpacing: 10,
+                        childAspectRatio: 0.85,
+                      ),
+                      itemBuilder: (BuildContext context, int index) {
+                        Product product = products[index];
+                        return _ProductCard(
+                          product: products[index],
+                          onTap: () => {_openProduct(product)},
+                        );
+                      },
+                    ),
+            );
+          }
+
+          return Container(color: Colors.red);
+        },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _openAddProduct,
@@ -108,7 +113,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-/// One square in the grid: picture box, title and price.
 class _ProductCard extends StatelessWidget {
   final Product product;
   final VoidCallback onTap;
